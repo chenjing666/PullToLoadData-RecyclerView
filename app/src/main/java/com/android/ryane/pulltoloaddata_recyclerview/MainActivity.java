@@ -50,22 +50,27 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void initRefreshLayout() {
         refreshLayout.setColorSchemeResources(android.R.color.holo_blue_light, android.R.color.holo_red_light,
-                android.R.color.holo_orange_light, android.R.color.holo_green_light);
+                android.R.color.holo_orange_light, android.R.color.holo_green_light);//下拉刷新转动的颜色变换
         refreshLayout.setOnRefreshListener(this);
     }
 
     private void initRecyclerView() {
+        // 初始化RecyclerView的Adapter
+        // 第一个参数为数据，上拉加载的原理就是分页，所以我设置常量PAGE_COUNT=10，即每次加载10个数据
+        // 第二个参数为Context
+        // 第三个参数为hasMore，是否有新数据
         adapter = new MyAdapter(getDatas(0, PAGE_COUNT), this, getDatas(0, PAGE_COUNT).size() > 0 ? true : false);
         mLayoutManager = new GridLayoutManager(this, 1);
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setAdapter(adapter);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
-
+        // 实现上拉加载重要步骤，设置滑动监听器，RecyclerView自带的ScrollListener
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
-                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {// 在newState为滑到底部时
+                    // 如果没有隐藏footView，那么最后一个条目的位置就比我们的getItemCount少1，自己可以算一下
                     if (adapter.isFadeTips() == false && lastVisibleItem + 1 == adapter.getItemCount()) {
                         mHandler.postDelayed(new Runnable() {
                             @Override
@@ -74,11 +79,12 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                             }
                         }, 500);
                     }
-
+                    // 如果隐藏了提示条，我们又上拉加载时，那么最后一个条目就要比getItemCount要少2
                     if (adapter.isFadeTips() == true && lastVisibleItem + 2 == adapter.getItemCount()) {
                         mHandler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
+                                // 然后调用updateRecyclerview方法更新RecyclerView
                                 updateRecyclerView(adapter.getRealLastPosition(), adapter.getRealLastPosition() + PAGE_COUNT);
                             }
                         }, 500);
@@ -89,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
+                // 在滑动完成后，拿到最后一个可见的item的位置
                 lastVisibleItem = mLayoutManager.findLastVisibleItemPosition();
             }
         });
@@ -103,10 +110,12 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         }
         return resList;
     }
-
+    // 上拉加载时调用的更新RecyclerView的方法
     private void updateRecyclerView(int fromIndex, int toIndex) {
+        // 获取从fromIndex到toIndex的数据
         List<String> newDatas = getDatas(fromIndex, toIndex);
         if (newDatas.size() > 0) {
+            // 然后传给Adapter，并设置hasMore为true
             adapter.updateList(newDatas, true);
         } else {
             adapter.updateList(null, false);
